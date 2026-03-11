@@ -3,87 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEROVEE AI - Chat</title>
+    <title>HEROVEE - DeepSeek AI</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.4; }
-        .user { align-self: flex-end; background: #007bff; color: white; }
-        .ai { align-self: flex-start; background: #333; color: #ddd; }
-        .input-area { padding: 15px; background: #1e1e1e; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border: none; border-radius: 5px; background: #2c2c2c; color: white; outline: none; }
-        button { padding: 10px 20px; background: #007bff; border: none; color: white; border-radius: 5px; cursor: pointer; }
-        button:disabled { background: #555; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0b0e14; color: #e2e8f0; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px 16px; border-radius: 12px; max-width: 85%; font-size: 15px; line-height: 1.5; }
+        .user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 2px; }
+        .ai { align-self: flex-start; background: #1e293b; border-bottom-left-radius: 2px; border: 1px solid #334155; }
+        .input-box { padding: 15px; background: #111827; display: flex; gap: 8px; border-top: 1px solid #1f2937; }
+        input { flex: 1; padding: 12px; border: 1px solid #374151; border-radius: 8px; background: #030712; color: white; outline: none; }
+        input:focus { border-color: #3b82f6; }
+        button { padding: 10px 18px; background: #3b82f6; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #1f2937; cursor: not-allowed; }
+        .typing { font-size: 12px; color: #94a3b8; margin-bottom: 5px; display: none; }
     </style>
 </head>
 <body>
 
-    <h3 style="text-align: center; color: #007bff; margin: 10px 0;">HEROVEE AI (DeepSeek)</h3>
-
-    <div id="chat-box">
-        <div class="msg ai">হ্যালো! আমি HEROVEE। আপনাকে কীভাবে সাহায্য করতে পারি?</div>
+    <div style="padding: 15px; background: #111827; text-align: center; border-bottom: 1px solid #1f2937;">
+        <strong style="color: #3b82f6;">HEROVEE AI</strong>
     </div>
 
-    <div class="input-area">
-        <input type="text" id="user-input" placeholder="এখানে লিখুন..." onkeypress="if(event.key==='Enter') sendMessage()">
-        <button id="send-btn" onclick="sendMessage()">পাঠান</button>
+    <div id="chat-window">
+        <div class="msg ai">হ্যালো! কানেকশন রেডি। আমি কীভাবে সাহায্য করতে পারি?</div>
+    </div>
+    
+    <div id="status" class="typing" style="padding-left: 20px;">HEROVEE টাইপ করছে...</div>
+
+    <div class="input-box">
+        <input type="text" id="user-input" placeholder="এখানে মেসেজ লিখুন..." autocomplete="off">
+        <button id="send-btn">পাঠান</button>
     </div>
 
     <script>
         const API_KEY = "sk-ce49271e19be4a7a86ea0462ff470f5e";
-        const API_URL = "https://api.deepseek.com/v1/chat/completions";
+        const inputField = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatWindow = document.getElementById('chat-window');
+        const status = document.getElementById('status');
 
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const btn = document.getElementById('send-btn');
-            const chatBox = document.getElementById('chat-box');
-            const text = input.value.trim();
-
+        async function chatWithAI() {
+            const text = inputField.value.trim();
             if (!text) return;
 
-            // ইউজারের মেসেজ স্ক্রিনে দেখানো
+            // ইউজারের মেসেজ যোগ করা
             addMessage(text, 'user');
-            input.value = '';
-            btn.disabled = true;
-
-            // লোডিং মেসেজ
-            const loadingMsg = addMessage("চিন্তা করছি...", 'ai');
+            inputField.value = '';
+            
+            // বাটন ডিজেবল ও স্ট্যাটাস দেখানো
+            sendBtn.disabled = true;
+            status.style.display = 'block';
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
+                const response = await fetch("https://api.deepseek.com/chat/completions", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_KEY}`
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${API_KEY}`
                     },
                     body: JSON.stringify({
                         model: "deepseek-chat",
-                        messages: [{ role: "user", content: text }],
+                        messages: [
+                            { role: "system", content: "You are HEROVEE, a smart assistant." },
+                            { role: "user", content: text }
+                        ],
                         stream: false
                     })
                 });
 
                 const data = await response.json();
-                loadingMsg.innerText = data.choices[0].message.content;
+                
+                if (data.choices && data.choices[0]) {
+                    const aiResponse = data.choices[0].message.content;
+                    addMessage(aiResponse, 'ai');
+                } else {
+                    addMessage("দুঃখিত, কোনো উত্তর পাওয়া যায়নি। API কী চেক করুন।", 'ai');
+                }
 
             } catch (error) {
-                loadingMsg.innerText = "Error: API কানেকশন কাজ করছে না।";
-                console.error(error);
+                console.error("Error:", error);
+                addMessage("কানেকশন ইরর! ইন্টারনেটে সমস্যা হতে পারে।", 'ai');
             } finally {
-                btn.disabled = false;
-                chatBox.scrollTop = chatBox.scrollHeight;
+                sendBtn.disabled = false;
+                status.style.display = 'none';
             }
         }
 
-        function addMessage(text, sender) {
-            const chatBox = document.getElementById('chat-box');
+        function addMessage(msg, sender) {
             const div = document.createElement('div');
             div.className = `msg ${sender}`;
-            div.innerText = text;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            return div;
+            div.innerText = msg;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
+
+        sendBtn.addEventListener('click', chatWithAI);
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') chatWithAI();
+        });
     </script>
 </body>
 </html>
