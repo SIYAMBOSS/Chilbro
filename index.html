@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEROVEE AI - Chat</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.4; }
+        .user { align-self: flex-end; background: #007bff; color: white; }
+        .ai { align-self: flex-start; background: #333; color: #ddd; }
+        .input-area { padding: 15px; background: #1e1e1e; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: none; border-radius: 5px; background: #2c2c2c; color: white; outline: none; }
+        button { padding: 10px 20px; background: #007bff; border: none; color: white; border-radius: 5px; cursor: pointer; }
+        button:disabled { background: #555; }
+    </style>
+</head>
+<body>
+
+    <h3 style="text-align: center; color: #007bff; margin: 10px 0;">HEROVEE AI (DeepSeek)</h3>
+
+    <div id="chat-box">
+        <div class="msg ai">হ্যালো! আমি HEROVEE। আপনাকে কীভাবে সাহায্য করতে পারি?</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="এখানে লিখুন..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button id="send-btn" onclick="sendMessage()">পাঠান</button>
+    </div>
+
+    <script>
+        const API_KEY = "sk-ce49271e19be4a7a86ea0462ff470f5e";
+        const API_URL = "https://api.deepseek.com/v1/chat/completions";
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const btn = document.getElementById('send-btn');
+            const chatBox = document.getElementById('chat-box');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            // ইউজারের মেসেজ স্ক্রিনে দেখানো
+            addMessage(text, 'user');
+            input.value = '';
+            btn.disabled = true;
+
+            // লোডিং মেসেজ
+            const loadingMsg = addMessage("চিন্তা করছি...", 'ai');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "deepseek-chat",
+                        messages: [{ role: "user", content: text }],
+                        stream: false
+                    })
+                });
+
+                const data = await response.json();
+                loadingMsg.innerText = data.choices[0].message.content;
+
+            } catch (error) {
+                loadingMsg.innerText = "Error: API কানেকশন কাজ করছে না।";
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            div.innerText = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return div;
+        }
+    </script>
+</body>
+</html>
